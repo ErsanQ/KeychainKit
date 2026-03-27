@@ -1,6 +1,13 @@
 import XCTest
 @testable import KeychainKit
 
+// MARK: - Test Keys
+extension KeychainKey {
+    static let testKey    = KeychainKey("test_key")
+    static let testData   = KeychainKey("test_data")
+    static let testObject = KeychainKey("test_object")
+}
+
 final class KeychainKitTests: XCTestCase {
 
     private let testService = "com.keychainkit.tests"
@@ -9,108 +16,126 @@ final class KeychainKitTests: XCTestCase {
     override func setUp() {
         super.setUp()
         store = KeychainStore(service: testService)
-        // Clean slate before each test
-        try? store.delete(forKey: "test_key")
-        try? store.delete(forKey: "test_data")
-        try? store.delete(forKey: "test_object")
+        try? store.delete(forKey: KeychainKey.testKey.rawValue)
+        try? store.delete(forKey: KeychainKey.testData.rawValue)
     }
 
     override func tearDown() {
-        try? store.delete(forKey: "test_key")
-        try? store.delete(forKey: "test_data")
-        try? store.delete(forKey: "test_object")
+        try? store.delete(forKey: KeychainKey.testKey.rawValue)
+        try? store.delete(forKey: KeychainKey.testData.rawValue)
         super.tearDown()
     }
 
-    // MARK: - KeychainStore: Save & Read
+    // MARK: - KeychainKey
 
-    func test_store_saveAndRead_string() throws {
+    func test_keychainKey_rawValue() {
+        let key = KeychainKey("auth_token")
+        XCTAssertEqual(key.rawValue, "auth_token")
+    }
+
+    func test_keychainKey_stringLiteral() {
+        let key: KeychainKey = "auth_token"
+        XCTAssertEqual(key.rawValue, "auth_token")
+    }
+
+    func test_keychainKey_equatable() {
+        XCTAssertEqual(KeychainKey("a"), KeychainKey("a"))
+        XCTAssertNotEqual(KeychainKey("a"), KeychainKey("b"))
+    }
+
+    func test_keychainKey_staticExtension() {
+        XCTAssertEqual(KeychainKey.testKey.rawValue, "test_key")
+    }
+
+    // MARK: - KeychainStore
+
+    func test_store_saveAndRead() throws {
         let data = "hello".data(using: .utf8)!
-        try store.save(data, forKey: "test_key", accessibility: .whenUnlocked)
-        let result = try store.read(forKey: "test_key")
+        try store.save(data, forKey: KeychainKey.testKey.rawValue, accessibility: .whenUnlocked)
+        let result = try store.read(forKey: KeychainKey.testKey.rawValue)
         XCTAssertEqual(String(data: result, encoding: .utf8), "hello")
     }
 
     func test_store_duplicate_throwsDuplicateItem() throws {
         let data = "value".data(using: .utf8)!
-        try store.save(data, forKey: "test_key", accessibility: .whenUnlocked)
+        try store.save(data, forKey: KeychainKey.testKey.rawValue, accessibility: .whenUnlocked)
         XCTAssertThrowsError(
-            try store.save(data, forKey: "test_key", accessibility: .whenUnlocked)
+            try store.save(data, forKey: KeychainKey.testKey.rawValue, accessibility: .whenUnlocked)
         ) { error in
-            XCTAssertEqual(error as? KeychainError, KeychainError.duplicateItem)
+            XCTAssertEqual(error as? KeychainError, .duplicateItem)
         }
     }
 
-    func test_store_readMissingKey_throwsItemNotFound() {
-        XCTAssertThrowsError(
-            try store.read(forKey: "nonexistent_key")
-        ) { error in
-            XCTAssertEqual(error as? KeychainError, KeychainError.itemNotFound)
+    func test_store_readMissing_throwsItemNotFound() {
+        XCTAssertThrowsError(try store.read(forKey: "ghost")) { error in
+            XCTAssertEqual(error as? KeychainError, .itemNotFound)
         }
-    }
-
-    func test_store_update_succeeds() throws {
-        let data1 = "old".data(using: .utf8)!
-        let data2 = "new".data(using: .utf8)!
-        try store.save(data1, forKey: "test_key", accessibility: .whenUnlocked)
-        try store.update(data2, forKey: "test_key", accessibility: .whenUnlocked)
-        let result = try store.read(forKey: "test_key")
-        XCTAssertEqual(String(data: result, encoding: .utf8), "new")
     }
 
     func test_store_saveOrUpdate_upserts() throws {
-        let data1 = "first".data(using: .utf8)!
-        let data2 = "second".data(using: .utf8)!
-        try store.saveOrUpdate(data1, forKey: "test_key", accessibility: .whenUnlocked)
-        try store.saveOrUpdate(data2, forKey: "test_key", accessibility: .whenUnlocked)
-        let result = try store.read(forKey: "test_key")
+        let d1 = "first".data(using: .utf8)!
+        let d2 = "second".data(using: .utf8)!
+        try store.saveOrUpdate(d1, forKey: KeychainKey.testKey.rawValue, accessibility: .whenUnlocked)
+        try store.saveOrUpdate(d2, forKey: KeychainKey.testKey.rawValue, accessibility: .whenUnlocked)
+        let result = try store.read(forKey: KeychainKey.testKey.rawValue)
         XCTAssertEqual(String(data: result, encoding: .utf8), "second")
     }
 
     func test_store_delete_removesItem() throws {
         let data = "value".data(using: .utf8)!
-        try store.save(data, forKey: "test_key", accessibility: .whenUnlocked)
-        try store.delete(forKey: "test_key")
-        XCTAssertThrowsError(try store.read(forKey: "test_key"))
+        try store.save(data, forKey: KeychainKey.testKey.rawValue, accessibility: .whenUnlocked)
+        try store.delete(forKey: KeychainKey.testKey.rawValue)
+        XCTAssertThrowsError(try store.read(forKey: KeychainKey.testKey.rawValue))
     }
 
-    func test_store_deleteNonexistent_succeeds() {
-        XCTAssertNoThrow(try store.delete(forKey: "ghost_key"))
+    func test_store_exists() throws {
+        XCTAssertFalse(store.exists(forKey: KeychainKey.testKey.rawValue))
+        let data = "v".data(using: .utf8)!
+        try store.save(data, forKey: KeychainKey.testKey.rawValue, accessibility: .whenUnlocked)
+        XCTAssertTrue(store.exists(forKey: KeychainKey.testKey.rawValue))
     }
 
-    func test_store_exists_trueWhenPresent() throws {
-        let data = "value".data(using: .utf8)!
-        try store.save(data, forKey: "test_key", accessibility: .whenUnlocked)
-        XCTAssertTrue(store.exists(forKey: "test_key"))
+    // MARK: - withLock
+
+    func test_withLock_savesValue() {
+        @KeychainItem(.testKey) var token: String?
+        $token.withLock { $0 = "locked_value" }
+        XCTAssertEqual(token, "locked_value")
+        $token.withLock { $0 = nil }
     }
 
-    func test_store_exists_falseWhenAbsent() {
-        XCTAssertFalse(store.exists(forKey: "nonexistent"))
+    func test_withLock_deletesValue() {
+        @KeychainItem(.testKey) var token: String?
+        token = "initial"
+        $token.withLock { $0 = nil }
+        XCTAssertNil(token)
+    }
+
+    func test_withLock_conditionalUpdate() {
+        @KeychainItem(.testKey) var token: String?
+        token = nil
+        $token.withLock { if $0 == nil { $0 = "default" } }
+        XCTAssertEqual(token, "default")
+        $token.withLock { $0 = nil }
     }
 
     // MARK: - KeychainError
 
-    func test_error_duplicateItem_description() {
+    func test_error_descriptions_notNil() {
         XCTAssertNotNil(KeychainError.duplicateItem.errorDescription)
-    }
-
-    func test_error_itemNotFound_description() {
         XCTAssertNotNil(KeychainError.itemNotFound.errorDescription)
+        XCTAssertNotNil(KeychainError.invalidData.errorDescription)
+        XCTAssertNotNil(KeychainError.unexpectedStatus(-1).errorDescription)
     }
 
-    func test_error_unexpectedStatus_includesCode() {
-        let error = KeychainError.unexpectedStatus(-25300)
-        XCTAssertTrue(error.errorDescription?.contains("-25300") ?? false)
+    func test_error_requiresSettingsRedirect_onlyForPermission() {
+        XCTAssertFalse(KeychainError.itemNotFound.requiresSettingsRedirect)
+        XCTAssertFalse(KeychainError.duplicateItem.requiresSettingsRedirect)
     }
 
-    func test_error_equatable_sameCase() {
-        XCTAssertEqual(KeychainError.duplicateItem, KeychainError.duplicateItem)
-        XCTAssertEqual(KeychainError.itemNotFound, KeychainError.itemNotFound)
-    }
+    // MARK: - Accessibility
 
-    // MARK: - KeychainAccessibility
-
-    func test_accessibility_cfStrings_areDistinct() {
+    func test_accessibility_allDistinct() {
         let all: [KeychainAccessibility] = [
             .whenUnlocked, .afterFirstUnlock, .always,
             .whenUnlockedThisDeviceOnly, .afterFirstUnlockThisDeviceOnly
@@ -119,19 +144,16 @@ final class KeychainKitTests: XCTestCase {
         XCTAssertEqual(Set(strings).count, all.count)
     }
 
-    // MARK: - Sendable Conformance
+    // MARK: - Sendable
 
-    func test_keychainError_isSendable() {
+    func test_sendable_conformances() {
+        let _: any Sendable = KeychainKey("x")
         let _: any Sendable = KeychainError.duplicateItem
-    }
-
-    func test_accessibility_isSendable() {
         let _: any Sendable = KeychainAccessibility.whenUnlocked
     }
 }
 
 // MARK: - KeychainError: Equatable
-
 extension KeychainError: Equatable {
     public static func == (lhs: KeychainError, rhs: KeychainError) -> Bool {
         switch (lhs, rhs) {

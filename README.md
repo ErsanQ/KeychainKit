@@ -15,7 +15,7 @@
 ---
 
 <p align="center">
-  <img src="assets/demo.gif" width="320"/>
+  The Keychain, finally made simple. One property wrapper. Zero boilerplate.
 </p>
 
 ---
