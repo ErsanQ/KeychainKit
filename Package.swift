@@ -1,35 +1,29 @@
 // swift-tools-version: 5.9
-
 import PackageDescription
 
 let package = Package(
     name: "KeychainKit",
+    defaultLocalization: "en",
     platforms: [
-        .iOS(.v16),
-        .macOS(.v13),
-        .tvOS(.v16),
-        .watchOS(.v9),
-        .visionOS(.v1)
+        .iOS(.v14),
+        .macOS(.v11),
+        .tvOS(.v14),
+        .watchOS(.v7)
     ],
     products: [
         .library(
             name: "KeychainKit",
-            targets: ["KeychainKit"]
-        ),
+            targets: ["KeychainKit"]),
     ],
+    dependencies: [],
     targets: [
         .target(
             name: "KeychainKit",
-            path: "Sources/KeychainKit",
-            swiftSettings: [
-                .enableExperimentalFeature("StrictConcurrency")
-            ]
-        ),
+            dependencies: [],
+            path: "Sources/KeychainKit"),
         .testTarget(
             name: "KeychainKitTests",
             dependencies: ["KeychainKit"],
-            path: "Tests/KeychainKitTests"
-        ),
-    ],
-    swiftLanguageVersions: [.v5]
+            path: "Tests/KeychainKitTests"),
+    ]
 )
