@@ -4,64 +4,51 @@ import Foundation
 import Security
 #endif
 
-/// A simplified, secure wrapper for iOS/macOS Keychain.
+/// A premium, type-safe property wrapper for storing data securely in the system Keychain.
+///
+/// `Keychain` simplifies the complex Security framework into a declarative interface,
+/// allowing developers to persist sensitive information like tokens or passwords
+/// with minimal code.
+///
+/// ## Usage
+/// ```swift
+/// @Keychain("user_token") var token: String?
+/// ```
+@propertyWrapper
 @MainActor
-public final class KeychainKit {
+public struct Keychain<T: Codable> {
+    private let key: String
+    private let accessibility: KeychainAccessibility
+    private let service: String?
     
-    public static let shared = KeychainKit()
-    private init() {}
+    /// Creates a new Keychain property wrapper.
+    ///
+    /// - Parameters:
+    ///   - key: The unique identifier for the data in the Keychain.
+    ///   - accessibility: The security level for when the data can be accessed. Defaults to `.afterFirstUnlock`.
+    ///   - service: An optional service name to group related data.
+    public init(_ key: String, accessibility: KeychainAccessibility = .afterFirstUnlock, service: String? = nil) {
+        self.key = key
+        self.accessibility = accessibility
+        self.service = service
+    }
     
-    /// Saves a string to the keychain.
-    public func save(_ value: String, for key: String) throws {
-        #if canImport(Security)
-        let data = Data(value.utf8)
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrAccount as String: key,
-            kSecValueData as String: data
-        ]
-        
-        SecItemDelete(query as CFDictionary)
-        let status = SecItemAdd(query as CFDictionary, nil)
-        
-        guard status == errSecSuccess else {
-            throw KeychainError.saveFailed(status)
+    public var wrappedValue: T? {
+        get {
+            #if canImport(Security)
+            return KeychainStore.shared.read(key: key, service: service)
+            #else
+            return nil
+            #endif
         }
-        #endif
-    }
-    
-    /// Retrieves a string from the keychain.
-    public func get(key: String) -> String? {
-        #if canImport(Security)
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrAccount as String: key,
-            kSecReturnData as String: true,
-            kSecMatchLimit as String: kSecMatchLimitOne
-        ]
-        
-        var result: AnyObject?
-        let status = SecItemCopyMatching(query as CFDictionary, &result)
-        
-        if status == errSecSuccess, let data = result as? Data {
-            return String(data: data, encoding: .utf8)
+        set {
+            #if canImport(Security)
+            if let value = newValue {
+                try? KeychainStore.shared.save(value, key: key, accessibility: accessibility, service: service)
+            } else {
+                try? KeychainStore.shared.delete(key: key, service: service)
+            }
+            #endif
         }
-        #endif
-        return nil
     }
-    
-    /// Deletes a key from the keychain.
-    public func delete(key: String) {
-        #if canImport(Security)
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrAccount as String: key
-        ]
-        SecItemDelete(query as CFDictionary)
-        #endif
-    }
-}
-
-public enum KeychainError: Error, Sendable {
-    case saveFailed(OSStatus)
 }

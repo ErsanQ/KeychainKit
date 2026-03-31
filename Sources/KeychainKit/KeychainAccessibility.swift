@@ -1,51 +1,26 @@
-import Security
+import Foundation
 
-// MARK: - KeychainAccessibility
-
-/// Controls when a Keychain item can be accessed.
+/// Defines when a Keychain item is accessible to the application.
 ///
-/// Choose the most restrictive accessibility level that meets your needs:
-///
-/// ```swift
-/// // Accessible only when device is unlocked (recommended for most cases)
-/// try Keychain.save(token, forKey: "auth", accessibility: .whenUnlocked)
-///
-/// // Accessible after first unlock (good for background tasks)
-/// try Keychain.save(token, forKey: "auth", accessibility: .afterFirstUnlock)
-/// ```
+/// These cases correspond to the `kSecAttrAccessible` values in the Security framework.
 public enum KeychainAccessibility: Sendable {
-
-    /// Item is accessible only while the device is unlocked.
-    ///
-    /// This is the **recommended default** for most use cases.
-    /// The item is not backed up to iCloud.
+    /// Accessible only when the device is unlocked.
     case whenUnlocked
-
-    /// Item is accessible after the first unlock following a device restart.
-    ///
-    /// Suitable for items accessed by background tasks.
+    /// Accessible after the device has been unlocked once after a reboot.
     case afterFirstUnlock
-
-    /// Item is always accessible, regardless of lock state.
-    ///
-    /// - Warning: Use only for items that must be accessed in all circumstances.
-    case always
-
-    /// Item is accessible only while unlocked and **not** synced to iCloud.
+    /// Accessible only when the device is unlocked, and data is not migrated to new devices.
     case whenUnlockedThisDeviceOnly
-
-    /// Item is accessible after first unlock and **not** synced to iCloud.
+    /// Accessible after the device has been unlocked once, and data is not migrated.
     case afterFirstUnlockThisDeviceOnly
-
-    // MARK: - Internal
-
-    var cfString: CFString {
+    
+    #if canImport(Security)
+    var securityValue: CFString {
         switch self {
-        case .whenUnlocked:                return kSecAttrAccessibleWhenUnlocked
-        case .afterFirstUnlock:            return kSecAttrAccessibleAfterFirstUnlock
-        case .always:                      return kSecAttrAccessibleAlways
-        case .whenUnlockedThisDeviceOnly:  return kSecAttrAccessibleWhenUnlockedThisDeviceOnly
+        case .whenUnlocked: return kSecAttrAccessibleWhenUnlocked
+        case .afterFirstUnlock: return kSecAttrAccessibleAfterFirstUnlock
+        case .whenUnlockedThisDeviceOnly: return kSecAttrAccessibleWhenUnlockedThisDeviceOnly
         case .afterFirstUnlockThisDeviceOnly: return kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
         }
     }
+    #endif
 }
