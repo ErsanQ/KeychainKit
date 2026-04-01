@@ -22,5 +22,7 @@ public enum KeychainAccessibility: Sendable {
         case .afterFirstUnlockThisDeviceOnly: return kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
         }
     }
+
+    var cfString: CFString { securityValue }
     #endif
 }

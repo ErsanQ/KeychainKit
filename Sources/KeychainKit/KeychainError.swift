@@ -2,6 +2,9 @@ import Foundation
 
 /// Errors that can occur during Keychain operations.
 public enum KeychainError: Error, Sendable {
+    case duplicateItem
+    case invalidData
+    case unexpectedStatus(Int32)
     /// The item was not found in the Keychain.
     case itemNotFound
     /// The data was found but could not be decoded.
@@ -18,6 +21,9 @@ public enum KeychainError: Error, Sendable {
 extension KeychainError: LocalizedError {
     public var errorDescription: String? {
         switch self {
+        case .duplicateItem: return "Item already exists in Keychain."
+        case .invalidData: return "Invalid data found in Keychain."
+        case .unexpectedStatus(let status): return "Unexpected Security status: \(status)."
         case .itemNotFound: return "Item not found in Keychain."
         case .decodingError(let error): return "Failed to decode Keychain data: \(error.localizedDescription)"
         case .encodingError(let error): return "Failed to encode data for Keychain: \(error.localizedDescription)"

@@ -36,17 +36,22 @@ public struct Keychain<T: Codable> {
     public var wrappedValue: T? {
         get {
             #if canImport(Security)
-            return KeychainStore.shared.read(key: key, service: service)
+            let store = KeychainStore(service: service ?? (Bundle.main.bundleIdentifier ?? "com.keychainkit.default"))
+            guard let data = try? store.read(forKey: key) else { return nil }
+            return try? JSONDecoder().decode(T.self, from: data)
             #else
             return nil
             #endif
         }
         set {
             #if canImport(Security)
+            let store = KeychainStore(service: service ?? (Bundle.main.bundleIdentifier ?? "com.keychainkit.default"))
             if let value = newValue {
-                try? KeychainStore.shared.save(value, key: key, accessibility: accessibility, service: service)
+                if let data = try? JSONEncoder().encode(value) {
+                    try? store.saveOrUpdate(data, forKey: key, accessibility: accessibility)
+                }
             } else {
-                try? KeychainStore.shared.delete(key: key, service: service)
+                try? store.delete(forKey: key)
             }
             #endif
         }

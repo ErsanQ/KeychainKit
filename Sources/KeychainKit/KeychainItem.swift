@@ -49,8 +49,8 @@ public struct KeychainItem: Sendable {
     public var wrappedValue: String? {
         get {
             lock.lock(); defer { lock.unlock() }
-            return try? store.read(forKey: key.rawValue)
-                .flatMap { String(data: $0, encoding: .utf8) }
+            guard let data = try? store.read(forKey: key.rawValue) else { return nil }
+            return String(data: data, encoding: .utf8)
         }
         nonmutating set {
             lock.lock(); defer { lock.unlock() }
@@ -72,8 +72,8 @@ public struct KeychainItem: Sendable {
     }
 
     fileprivate func _read() -> String? {
-        try? store.read(forKey: key.rawValue)
-            .flatMap { String(data: $0, encoding: .utf8) }
+        guard let data = try? store.read(forKey: key.rawValue) else { return nil }
+        return String(data: data, encoding: .utf8)
     }
 
     fileprivate func acquireLock() { lock.lock() }
