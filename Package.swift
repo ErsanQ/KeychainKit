@@ -24,7 +24,6 @@ let package = Package(
             path: "Sources/KeychainKit"),
         .testTarget(
             name: "KeychainKitTests",
-            dependencies: ["KeychainKit"],
-            path: "Tests/KeychainKitTests"),
+            dependencies: ["KeychainKit"]),
     ]
 )
